@@ -104,6 +104,11 @@ policy, split file, and settings. Fold results are resumed only when this finger
 matches, and `scripts/check_run_complete.py` verifies that a run is complete before a batch
 launcher skips it.
 
+## Reported results
+
+`results/` contains the per-subject balanced accuracies and the subject-level summaries reported in
+the article (see `results/README.md`).
+
 ## Evaluation units
 
 For subject-held-out protocols the held-out subject is the unit of analysis: balanced
@@ -119,6 +124,7 @@ comparisons.
 src/eeg_emotion_validity/   labels, probes, statistics, models, features, signal loading
 scripts/                    data preparation, splits, training, probes, transfer, summaries
 tests/                      unit and synthetic tests of the contracts above
+results/                    per-subject and summary results reported in the article
 ```
 
 ## Citation
