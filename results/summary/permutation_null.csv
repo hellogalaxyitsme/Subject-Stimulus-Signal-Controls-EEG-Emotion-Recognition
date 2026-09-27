@@ -1,0 +1,9 @@
+dataset,target,model,n_folds,n_permutations,chance_balanced_accuracy,balanced_accuracy_mean,balanced_accuracy_minus_chance
+dreamer,valence,alpha_logistic,23,5,0.5,0.5042460133134197,0.0042460133134196
+dreamer,valence,spectral_logistic,23,5,0.5,0.5033341466083786,0.0033341466083786
+seed_iv,emotion,alpha_logistic,15,5,0.25,0.2504186719415811,0.0004186719415811
+seed_iv,emotion,spectral_logistic,15,5,0.25,0.2510801829295864,0.0010801829295863
+deap,arousal,alpha_logistic,32,5,0.5,0.4994629306412961,-0.0005370693587038
+deap,arousal,spectral_logistic,32,5,0.5,0.501064842512528,0.001064842512528
+deap,valence,alpha_logistic,32,5,0.5,0.5008400991937568,0.0008400991937568
+deap,valence,spectral_logistic,32,5,0.5,0.4989993690000615,-0.0010006309999385

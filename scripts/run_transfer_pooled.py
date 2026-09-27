@@ -42,7 +42,8 @@ def summarize_spectral(features: np.ndarray, dataset: str) -> np.ndarray:
     )
 
 
-def trial_features(dataset: str, target: str, manifest_root: Path, feature_root: Path) -> tuple[np.ndarray, np.ndarray]:
+def trial_features(dataset: str, target: str, manifest_root: Path, feature_root: Path,
+                   return_subjects: bool = False) -> tuple[np.ndarray, ...]:
     manifest = require_verified_ratings(pd.read_csv(manifest_root / f"{dataset}_torcheeg_manifest.csv"), dataset).reset_index(drop=True)
     manifest.insert(0, "row_index", manifest.index)
     features = np.load(feature_root / f"{dataset}_spectral.npy", mmap_mode="r")
@@ -55,18 +56,22 @@ def trial_features(dataset: str, target: str, manifest_root: Path, feature_root:
 
     x_rows = []
     y_rows = []
+    subjects = []
     threshold = 5.0 if dataset == "deap" else 3.0
-    for _, group in chunk_frame.groupby(["subject_id", "trial_id"]):
+    for (subject, _), group in chunk_frame.groupby(["subject_id", "trial_id"]):
         idx = group["feature_row"].to_numpy()
         x_rows.append(chunks[idx].mean(axis=0))
         rating = float(group[target].iloc[0])
         y_rows.append(f"high_{target}" if rating > threshold else f"low_{target}")
-    return np.vstack(x_rows).astype("float32"), np.asarray(y_rows)
+        subjects.append(str(subject))
+    x, y = np.vstack(x_rows).astype("float32"), np.asarray(y_rows)
+    return (x, y, np.asarray(subjects)) if return_subjects else (x, y)
 
 
 def run_direction(source: str, target_dataset: str, target: str, args: argparse.Namespace) -> list[dict[str, object]]:
     x_train, y_train = trial_features(source, target, args.manifest_root, args.feature_root)
-    x_test, y_test = trial_features(target_dataset, target, args.manifest_root, args.feature_root)
+    x_test, y_test, test_subjects = trial_features(target_dataset, target, args.manifest_root, args.feature_root,
+                                                   return_subjects=True)
     rows = []
     for name, result in [
         ("majority", majority_baseline(y_train, y_test)),
@@ -85,6 +90,11 @@ def run_direction(source: str, target_dataset: str, target: str, args: argparse.
         }
         rows.append(row)
         print(row)
+        if args.predictions_dir is not None and getattr(result, "predictions", None) is not None:
+            args.predictions_dir.mkdir(parents=True, exist_ok=True)
+            pd.DataFrame({"target_subject": test_subjects, "y_true": y_test,
+                          "y_pred": np.asarray(result.predictions)}).to_csv(
+                args.predictions_dir / f"{source}_to_{target_dataset}_{target}_{name}.csv", index=False)
     return rows
 
 
@@ -95,6 +105,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--feature-root", type=Path, default=DEFAULT_FEATURE_ROOT)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--seed", type=int, default=20260530)
+    parser.add_argument("--predictions-dir", type=Path, default=None,
+                        help="write trial-level target predictions with target-subject identifiers")
     return parser.parse_args()
 
 

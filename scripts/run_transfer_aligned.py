@@ -92,7 +92,8 @@ def load_trial_features(
     target: str,
     manifest_root: Path,
     features_dir: Path,
-) -> tuple[np.ndarray, np.ndarray]:
+    return_subjects: bool = False,
+) -> tuple[np.ndarray, ...]:
     manifest_path = manifest_root / f"{dataset}_torcheeg_manifest.csv"
     feature_path = features_dir / f"{dataset}_spectral.npy"
     manifest = require_verified_ratings(pd.read_csv(manifest_path), dataset).reset_index(drop=True)
@@ -113,13 +114,16 @@ def load_trial_features(
 
     x_rows = []
     y_rows = []
+    subjects = []
     threshold = label_threshold(dataset)
-    for _, group in chunk_frame.groupby(["subject_id", "trial_id"], sort=True):
+    for (subject, _), group in chunk_frame.groupby(["subject_id", "trial_id"], sort=True):
         idx = group["feature_row"].to_numpy()
         x_rows.append(shared[idx].mean(axis=0))
         rating = float(group[target].iloc[0])
         y_rows.append(f"high_{target}" if rating > threshold else f"low_{target}")
-    return np.vstack(x_rows).astype("float32"), np.asarray(y_rows, dtype=str)
+        subjects.append(str(subject))
+    x, y = np.vstack(x_rows).astype("float32"), np.asarray(y_rows, dtype=str)
+    return (x, y, np.asarray(subjects)) if return_subjects else (x, y)
 
 
 def zscore_independent(x_source: np.ndarray, x_target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -195,7 +199,8 @@ def metric_row(
 def run_direction(args: argparse.Namespace, target: str) -> list[dict[str, object]]:
     assert_transfer_allowed(args.source_dataset, args.target_dataset, target)
     x_source, y_source = load_trial_features(args.source_dataset, target, args.manifest_root, args.features_dir)
-    x_target, y_target = load_trial_features(args.target_dataset, target, args.manifest_root, args.features_dir)
+    x_target, y_target, target_subjects = load_trial_features(
+        args.target_dataset, target, args.manifest_root, args.features_dir, return_subjects=True)
 
     rows = []
     transforms = {
@@ -217,6 +222,11 @@ def run_direction(args: argparse.Namespace, target: str) -> list[dict[str, objec
         )
         print(row)
         rows.append(row)
+        if args.predictions_dir is not None:
+            args.predictions_dir.mkdir(parents=True, exist_ok=True)
+            pd.DataFrame({"target_subject": target_subjects, "y_true": y_target, "y_pred": y_pred}).to_csv(
+                args.predictions_dir / f"{args.source_dataset}_to_{args.target_dataset}_{target}_{method}.csv",
+                index=False)
     return rows
 
 
@@ -240,6 +250,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-json", type=Path)
     parser.add_argument("--seed", type=int, default=20260530)
     parser.add_argument("--coral-eps", type=float, default=1e-5)
+    parser.add_argument("--predictions-dir", type=Path, default=None,
+                        help="write trial-level target predictions with target-subject identifiers")
     return parser.parse_args()
 
 

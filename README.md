@@ -4,8 +4,9 @@ The code evaluates EEG emotion recognition models on DEAP, DREAMER, and SEED-IV 
 controls that separate what a benchmark score depends on:
 
 - **Evaluation protocols**: segment-random, trial-held-out, and leave-one-subject-out (LOSO)
-  splits, plus a matched **subject × stimulus holdout** in which test stimuli are either
-  withheld from, or available in, the training data of other participants.
+  splits, plus a paired **subject × stimulus holdout** in which test stimuli are either
+  withheld from, or available in, the training data of other participants, with a class- and
+  window-matched variant in which both conditions train on identical per-class window counts.
 - **Label construction**: explicit, versioned label policies (threshold and tie rule) with
   sensitivity variants.
 - **Signal transforms**: sample shuffling, time reversal, and multichannel phase-randomized
@@ -60,6 +61,9 @@ python scripts/make_stimulus_holdout_splits.py --manifest-root data/processed/ma
     --output-root data/processed/splits
 python scripts/make_splits.py --dataset dreamer --protocol strict_loso --label-variant tie_high \
     --manifest-root data/processed/manifests --output-root data/processed/splits
+python scripts/make_matched_stimulus_splits.py --split-root data/processed/splits \
+    --output-root data/processed/splits_matched \
+    --tasks deap:valence,deap:arousal,dreamer:valence,dreamer:arousal,seed_iv:emotion
 
 # 3. Band-power features and classical models
 python scripts/extract_bandpower_features.py --dataset deap --output-root data/processed/features
@@ -75,22 +79,31 @@ python scripts/run_deep.py --dataset seed_iv --target emotion --protocol strict_
     --output runs/deep/seed_iv_shallow_none.json
 #    --temporal-ablation {time_shuffle,time_reverse,phase_random}
 #    --protocol {loso_stimulus_seen,loso_stimulus_heldout}
+#        (with --split-root data/processed/splits_matched for the matched variant)
 #    --inject-class-signal-snr 0.5 --eval-train        (positive control)
 #    --representation-dir runs/deep/representations     (for network probes)
 
 # 5. Probes, transfer, label statistics
 python scripts/run_feature_probes.py --feature-root data/processed/features
 python scripts/run_network_probes.py --representation-root runs/deep/representations
-python scripts/run_transfer_pooled.py --target valence --manifest-root data/processed/manifests
+python scripts/run_transfer_pooled.py --target valence --manifest-root data/processed/manifests \
+    --predictions-dir runs/transfer/predictions
 python scripts/run_transfer_aligned.py --source-dataset deap --target-dataset dreamer \
-    --manifest-root data/processed/manifests
+    --manifest-root data/processed/manifests --predictions-dir runs/transfer/predictions
 python scripts/run_transfer_deep.py --source-dataset dreamer --target-dataset deap --target valence \
-    --manifest-root data/processed/manifests
+    --manifest-root data/processed/manifests --predictions-dir runs/transfer/predictions
 python scripts/label_statistics.py --manifest-root data/processed/manifests
 
-# 6. Subject-level summaries and paired comparisons
-python scripts/summarize_results.py --runs runs --output-dir results/summary
+# 6. Subject-level summaries and paired comparisons from the approved-result registry
+python scripts/summarize_results.py --results results --output-dir results/summary_check
+#    for new runs: --runs-registry my_runs.csv  (columns run_id, path; one row per finished run file)
 ```
+
+`summarize_results.py` aggregates only the rows listed in `results/estimate_rows.csv`; it does not
+scan run directories. Before computing any statistic it checks the schema, rejects duplicate
+(run, seed, fold) rows, rejects pooling runs that differ in any condition-defining setting
+(including the split partition, epochs, signal transform, injected signal, and label policy), and
+rejects per-fold checkpoint files.
 
 Every run writes a JSON file with per-fold metrics, class support, confusion matrices, the
 full training configuration, package versions, and a fingerprint of the target, label
@@ -100,8 +113,10 @@ launcher skips it.
 
 ## Reported results
 
-`results/` contains the per-subject balanced accuracies and the subject-level summaries reported in
-the article (see `results/README.md`).
+`results/` contains the run registry (run identifiers, seeds, condition settings, split and
+configuration hashes), the per-subject balanced accuracies, the estimate registry that maps each
+reported value to its rows, per-target-subject transfer results, and the summaries reported in the
+article (see `results/README.md`). `pytest` checks that the summaries are reproduced from these files.
 
 ## Evaluation units
 

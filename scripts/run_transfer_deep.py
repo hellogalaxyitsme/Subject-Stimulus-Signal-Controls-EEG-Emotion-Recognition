@@ -401,6 +401,15 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
     y_test, pred_test, test_logits, test_trial_keys, test_loss = evaluate(model, test_loader, device, loss_fn=loss_fn)
     y_trial, pred_trial = aggregate_trial_predictions(test_logits, y_test, test_trial_keys)
+    if args.predictions_dir is not None:
+        keys = sorted(set(test_trial_keys))  # order used by aggregate_trial_predictions
+        args.predictions_dir.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame({
+            "trial_key": keys,
+            "target_subject": [key.split("_trial_")[0] for key in keys],
+            "y_true": y_trial,
+            "y_pred": pred_trial,
+        }).to_csv(args.predictions_dir / f"{args.output.stem}_trial_predictions.csv", index=False)
     train_trial_y, _ = trial_labels(train, label_to_id)
     test_trial_y, _ = trial_labels(target, label_to_id)
 
@@ -481,6 +490,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--deap-root", type=Path, default=DEFAULT_DEAP_ROOT)
     parser.add_argument("--dreamer-mat", type=Path, default=DEFAULT_DREAMER_MAT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--predictions-dir", type=Path, default=None,
+                        help="write trial-level target predictions with target-subject identifiers")
     parser.add_argument("--sfreq", type=float)
     parser.add_argument("--io-mode", default="lmdb")
     parser.add_argument("--epochs", type=int, default=5)

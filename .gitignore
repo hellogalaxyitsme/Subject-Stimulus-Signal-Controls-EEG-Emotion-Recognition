@@ -8,6 +8,6 @@ dist/
 venv/
 data/
 runs/
-results/
 logs/
 .DS_Store
+results/summary_check/

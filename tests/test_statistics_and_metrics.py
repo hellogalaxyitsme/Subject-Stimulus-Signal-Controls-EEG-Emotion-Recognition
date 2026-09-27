@@ -23,21 +23,21 @@ def test_t_interval_uses_student_multiplier_for_five_seeds():
     assert np.isnan(t_interval([0.1])["low"])
 
 
-def test_summarize_results_pairs_subjects_and_reports_t_interval(tmp_path):
-    import json
-
-    def write(name, protocol, bas):
-        folds = [{"dataset": "seed_iv", "target": "emotion", "protocol": protocol, "model": "m", "fold": i + 1,
-                  "seed": 1, "temporal_ablation": "none", "n_test_classes": 4, "balanced_accuracy": ba}
-                 for i, ba in enumerate(bas)]
-        (tmp_path / f"{name}.json").write_text(json.dumps({"metadata": {}, "fold_metrics": folds}))
-
+def test_summarize_results_pairs_subjects_and_reports_t_interval():
     seen = [0.40, 0.42, 0.38, 0.45, 0.41, 0.39]
     held = [0.30, 0.33, 0.31, 0.36, 0.30, 0.32]
-    write("a", "loso_stimulus_seen", seen)
-    write("b", "loso_stimulus_heldout", held)
-    table = summary.paired_comparisons(summary.load_folds(tmp_path))
-    row = table[table["family"] == "stimulus_seen_minus_heldout"].iloc[0]
+    base = {"kind": "deep", "dataset": "seed_iv", "target": "emotion", "label_policy_id": "p",
+            "label_variant": "primary", "split_variant": "primary", "model": "m", "transform": "none", "epochs": 5,
+            "batch_size": 128, "early_stopping": False, "class_weighting": "none", "inject_snr": 0.0, "seed": 1}
+    runs = pd.DataFrame([{**base, "run_id": "a", "protocol": "loso_stimulus_seen", "split_partition_sha256": "s"},
+                         {**base, "run_id": "b", "protocol": "loso_stimulus_heldout", "split_partition_sha256": "h"}])
+    rows = pd.DataFrame([{"run_id": r, "seed": 1, "fold": i + 1, "balanced_accuracy": ba, "n_test_classes": 4}
+                         for r, bas in (("a", seen), ("b", held)) for i, ba in enumerate(bas)])
+    est = rows[["run_id", "seed", "fold"]].assign(estimate="stimulus_holdout:seed_iv:emotion:m",
+                                                   analysis="stimulus_holdout", holm_family="stimulus_holdout",
+                                                   role=lambda f: f["run_id"].map({"a": "A", "b": "B"}))
+    table = summary.paired_estimates(summary.validate(runs, rows, est))
+    row = table.iloc[0]
     diffs = [s - h for s, h in zip(seen, held)]
     assert row["n_pairs"] == 6
     assert row["mean_diff"] == pytest.approx(sum(diffs) / 6)
