@@ -42,10 +42,7 @@ data/raw/seed_iv/eeg_raw_data/{1,2,3}/*.mat
 **DEAP ratings.** Valence and arousal are taken from the provider rating table
 (`Metadata/participant_ratings.xls`), joined on participant and video.
 `scripts/prepare_deap_ratings.py` builds the DEAP manifest used by all later steps and checks
-the join through the dominance and liking ratings. In the preprocessed files used for the
-paper, the stored valence and arousal values differed from this table (the table's
-high-valence/high-arousal trials were stored as `9 - r`); the script reports how many trials
-differ in your copy.
+the join through the dominance and liking ratings.
 
 ## Reproducing the analyses
 

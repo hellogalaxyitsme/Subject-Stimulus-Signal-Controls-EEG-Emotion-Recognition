@@ -117,7 +117,7 @@ def build_target_labels(frame: pd.DataFrame, dataset: str, target: str, variant:
     if dataset == "deap" and set(frame.get("rating_source", pd.Series(dtype=object)).unique()) != {DEAP_RATING_SOURCE}:
         raise TargetContractError(
             "DEAP labels must come from the provider-rating manifest "
-            "(scripts/prepare_deap_ratings.py); the preprocessed-file values disagree with the provider rating table"
+            "(scripts/prepare_deap_ratings.py)"
         )
     if policy.source_column not in frame.columns:
         raise TargetContractError(f"Source column {policy.source_column!r} missing for {dataset}/{target}")
