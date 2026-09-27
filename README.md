@@ -1,8 +1,5 @@
 # Subject-Stimulus-Signal-Controls-EEG-Emotion-Recognition
 
-Code accompanying the manuscript *"Subject, Stimulus, and Signal Controls for Evaluating EEG
-Emotion Recognition Benchmarks"* (J. S. Bindra and S. Panwar; under review).
-
 The code evaluates EEG emotion recognition models on DEAP, DREAMER, and SEED-IV under
 controls that separate what a benchmark score depends on:
 
@@ -126,12 +123,3 @@ scripts/                    data preparation, splits, training, probes, transfer
 tests/                      unit and synthetic tests of the contracts above
 results/                    per-subject and summary results reported in the article
 ```
-
-## Citation
-
-If you use this code, please cite the accompanying article (citation details will be added
-upon publication).
-
-## License
-
-MIT (see `LICENSE`). The datasets are subject to their providers' licence terms.

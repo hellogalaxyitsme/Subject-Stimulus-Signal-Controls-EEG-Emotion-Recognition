@@ -7,7 +7,6 @@ name = "eeg-emotion-validity"
 version = "1.0.0"
 description = "Subject, stimulus, and signal controls for evaluating EEG emotion recognition benchmarks (DEAP, DREAMER, SEED-IV)."
 readme = "README.md"
-license = {text = "MIT"}
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.24",
