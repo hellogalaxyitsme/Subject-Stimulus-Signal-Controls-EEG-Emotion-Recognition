@@ -1,7 +1,7 @@
 # EEG-Emotion-Validity
 
 Code accompanying the manuscript *"Subject, Stimulus, and Signal Controls for Evaluating EEG
-Emotion Recognition Benchmarks"* (J. S. Bindra, H. S. Gambhir, S. Panwar; under review).
+Emotion Recognition Benchmarks"* (J. S. Bindra and S. Panwar; under review).
 
 The code evaluates EEG emotion recognition models on DEAP, DREAMER, and SEED-IV under
 controls that separate what a benchmark score depends on:
