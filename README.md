@@ -1,4 +1,4 @@
-# EEG-Emotion-Validity
+# Subject-Stimulus-Signal-Controls-EEG-Emotion-Recognition
 
 Code accompanying the manuscript *"Subject, Stimulus, and Signal Controls for Evaluating EEG
 Emotion Recognition Benchmarks"* (J. S. Bindra and S. Panwar; under review).
